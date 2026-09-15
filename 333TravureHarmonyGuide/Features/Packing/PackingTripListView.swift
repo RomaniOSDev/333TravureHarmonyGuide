@@ -1,236 +1,189 @@
 import SwiftUI
 
-struct PackingTripListView: View {
+struct KitBayView: View {
     @EnvironmentObject private var store: AppStore
-    @State private var showNewTrip = false
-    @State private var newTitle = ""
-    @State private var template: PackingTemplate = .blank
-    @State private var titleError: String?
-    @State private var pendingDelete: PackingTrip?
+    @State private var showEditor = false
+    @State private var editingPiece: GearPiece?
+    @State private var pendingPiece: GearPiece?
     @State private var confirmDelete = false
+    @State private var confirmRebuild = false
 
     var body: some View {
         Group {
-            if store.tripEssentials.isEmpty {
-                emptyState
+            if let drop = store.activeDrop {
+                kit(drop)
             } else {
-                listContent
-            }
-        }
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button {
-                    showNewTrip = true
-                    titleError = nil
-                    newTitle = ""
-                    template = .blank
-                } label: {
-                    Image(systemName: "plus")
-                        .foregroundColor(Color("AppInk"))
-                        .frame(minWidth: Theme.tap, minHeight: Theme.tap)
+                ScrollView {
+                    VStack(spacing: 18) {
+                        RidgeBanner(imageName: "bannerPack")
+                        LiftPassCard {
+                            RidgeEmptyState(
+                                symbol: "bag.fill",
+                                message: "Kit is tied to a drop. Set first chair on Launch, then pack by boot bag, cabin, hold, and car."
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .padding(.bottom, 28)
                 }
-                .accessibilityIdentifier("addPackingTripToolbarButton")
-                .accessibilityLabel("Add packing list")
+                .clearScrollBackground()
             }
-        }
-        .sheet(isPresented: $showNewTrip) {
-            newTripSheet
-        }
-        .confirmationDialog(
-            "Delete this packing list?",
-            isPresented: $confirmDelete,
-            titleVisibility: .visible
-        ) {
-            Button("Delete List", role: .destructive) {
-                if let pendingDelete {
-                    store.deleteTrip(id: pendingDelete.id)
-                }
-                pendingDelete = nil
-            }
-            .accessibilityIdentifier("confirmDeleteTripButton")
-            Button("Cancel", role: .cancel) { pendingDelete = nil }
-                .accessibilityIdentifier("cancelDeleteTripButton")
-        } message: {
-            Text("All packed and unpacked items on this list will be removed.")
         }
     }
 
-    private var emptyState: some View {
+    private func kit(_ drop: SkiDrop) -> some View {
         ScrollView {
             VStack(spacing: 18) {
-                JournalBanner(imageName: "bannerPack")
-                TicketStubCard {
-                    JournalEmptyState(
-                        symbol: "suitcase.fill",
-                        message: "No Essentials Yet! Start Adding Your Must-Haves."
-                    )
-                }
-                JournalPrimaryButton(
-                    title: "Start a packing list",
-                    systemImage: "plus.circle.fill",
-                    identifier: "addPackingTripButton"
-                ) {
-                    showNewTrip = true
-                    titleError = nil
-                    newTitle = ""
-                    template = .blank
-                }
-            }
-            .padding(16)
-        }
-    }
+                RidgeBanner(imageName: "bannerPack")
 
-    private var listContent: some View {
-        List {
-            Section {
-                JournalBanner(imageName: "bannerPack")
-                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-            }
-
-            ForEach(store.tripEssentials) { trip in
-                ZStack {
-                    NavigationLink {
-                        PackingTripDetailView(tripId: trip.id)
-                    } label: {
-                        EmptyView()
-                    }
-                    .opacity(0)
-                    .accessibilityIdentifier("packingTripRow_\(trip.id.uuidString)")
-
-                    TicketStubCard {
-                        HStack(spacing: 12) {
-                            PassportStamp(
-                                symbol: "suitcase.fill",
-                                caption: "\(Int((trip.completion * 100).rounded()))%",
-                                rotation: -6
-                            )
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(trip.title)
-                                    .font(.system(.headline, design: .serif))
-                                    .foregroundColor(Color("AppInk"))
-                                Text("\(trip.packedCount) of \(trip.items.count) packed")
-                                    .font(.system(.caption, design: .serif))
-                                    .foregroundColor(Color("AppAccent"))
-                                if let destinationId = trip.destinationId,
-                                   let destination = store.destination(id: destinationId) {
-                                    Text(destination.country.isEmpty ? destination.name : "\(destination.name), \(destination.country)")
-                                        .font(.system(.caption, design: .serif))
-                                        .foregroundColor(Color("AppInk").opacity(0.75))
-                                }
-                            }
-                            Spacer(minLength: 0)
-                            JournalIconButton(
-                                systemImage: "plus.square.on.square",
-                                identifier: "duplicateTripOnscreen_\(trip.id.uuidString)"
-                            ) {
-                                store.duplicateTrip(id: trip.id)
-                                Haptics.success()
-                            }
-                            JournalIconButton(
-                                systemImage: "trash",
-                                identifier: "deleteTripOnscreen_\(trip.id.uuidString)"
-                            ) {
-                                pendingDelete = trip
-                                confirmDelete = true
-                            }
-                        }
+                LiftPassCard {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(drop.title)
+                            .font(.system(.headline, design: .rounded))
+                            .foregroundColor(Color("AppInk"))
+                        Text("\(drop.packedCount) of \(drop.kit.count) stowed · \(drop.snow.rawValue) · \(drop.travel.rawValue)")
+                            .font(.system(.caption, design: .rounded))
+                            .foregroundColor(Color("AppInk").opacity(0.75))
+                        ProgressView(value: drop.kitProgress)
+                            .tint(Color("AppAccent"))
+                            .accessibilityIdentifier("kitProgress")
+                        Text("This is not a city-break packing list. Bays follow how ski kit actually travels.")
+                            .font(.system(.caption, design: .rounded))
+                            .foregroundColor(Color("AppInk").opacity(0.75))
                     }
                 }
-                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
-                .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                    Button {
-                        store.duplicateTrip(id: trip.id)
-                        Haptics.success()
-                    } label: {
-                        Label("Copy", systemImage: "plus.square.on.square")
-                    }
-                    .tint(Color("AppAccent"))
-                    .accessibilityIdentifier("swipeDuplicateTrip_\(trip.id.uuidString)")
-                }
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) {
-                        pendingDelete = trip
-                        confirmDelete = true
-                    } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
-                    .accessibilityIdentifier("swipeDeleteTrip_\(trip.id.uuidString)")
-                }
-            }
-        }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-        .accessibilityIdentifier("packingTripList")
-    }
 
-    private var newTripSheet: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 16) {
-                    TicketStubCard {
+                ForEach(KitBayLayout.groups(from: drop.kit)) { group in
+                    LiftPassCard {
                         VStack(alignment: .leading, spacing: 10) {
-                            JournalField(
-                                title: "List title",
-                                identifier: "newTripTitleField",
-                                text: $newTitle,
-                                placeholder: "Weekend in Lisbon"
-                            )
-                            if let titleError {
-                                InlineErrorText(message: titleError)
+                            HStack {
+                                Image(systemName: group.bay.symbol)
+                                Text(group.bay.rawValue)
+                                    .font(.system(.headline, design: .rounded))
                             }
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("Template")
-                                    .font(.system(.caption, design: .serif))
-                                    .foregroundColor(Color("AppInk").opacity(0.85))
-                                Picker("Template", selection: $template) {
-                                    ForEach(PackingTemplate.allCases) { item in
-                                        Text(item.rawValue).tag(item)
-                                    }
-                                }
-                                .pickerStyle(.menu)
-                                .tint(Color("AppInk"))
-                                .frame(maxWidth: .infinity, minHeight: Theme.tap, alignment: .leading)
-                                .accessibilityIdentifier("packingTemplatePicker")
+                            .foregroundColor(Color("AppInk"))
+
+                            ForEach(group.pieces) { piece in
+                                pieceRow(drop: drop, piece: piece)
                             }
                         }
-                    }
-                    JournalPrimaryButton(
-                        title: "Create packing list",
-                        systemImage: "checkmark.circle.fill",
-                        identifier: "saveNewTripButton"
-                    ) {
-                        let trimmed = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-                        if trimmed.isEmpty {
-                            titleError = "Name is required"
-                            Haptics.warning()
-                            return
-                        }
-                        titleError = nil
-                        store.addTrip(title: trimmed, items: template.items)
-                        Haptics.success()
-                        showNewTrip = false
                     }
                 }
-                .padding(16)
+
+                RidgePrimaryButton(
+                    title: "Add a piece",
+                    systemImage: "plus.circle.fill",
+                    identifier: "addGearButton"
+                ) {
+                    editingPiece = nil
+                    showEditor = true
+                }
+
+                NavigationLink {
+                    KitLegendView()
+                } label: {
+                    Text("How kit bays work")
+                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        .foregroundColor(Color("AppAccent"))
+                        .frame(maxWidth: .infinity, minHeight: Theme.tap)
+                }
+                .accessibilityIdentifier("kitLegendButton")
+
+                NavigationLink {
+                    LayerStudioView()
+                } label: {
+                    Text("First-chair layer stack")
+                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        .foregroundColor(Color("AppAccent"))
+                        .frame(maxWidth: .infinity, minHeight: Theme.tap)
+                }
+                .accessibilityIdentifier("layerStudioButton")
+
+                Button {
+                    confirmRebuild = true
+                } label: {
+                    Text("Rebuild kit from snow + travel")
+                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        .foregroundColor(Color("AppAccent"))
+                        .frame(maxWidth: .infinity, minHeight: Theme.tap)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("rebuildKitButton")
             }
-            .journalCanvas()
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Text("New packing list")
-                        .font(.system(.headline, design: .serif))
-                }
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { showNewTrip = false }
-                        .frame(minHeight: Theme.tap)
-                        .accessibilityIdentifier("cancelNewTripButton")
-                }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .padding(.bottom, 28)
+        }
+        .clearScrollBackground()
+        .sheet(isPresented: $showEditor) {
+            if let drop = store.activeDrop {
+                GearPieceEditorView(dropId: drop.id, existing: editingPiece)
+                    .environmentObject(store)
             }
         }
-        .environmentObject(store)
+        .confirmationDialog("Rebuild this kit?", isPresented: $confirmRebuild, titleVisibility: .visible) {
+            Button("Rebuild kit", role: .destructive) {
+                store.rebuildKit(for: drop.id)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Custom pieces will be replaced with the snow-and-travel template.")
+        }
+        .confirmationDialog("Remove this piece?", isPresented: $confirmDelete, titleVisibility: .visible) {
+            Button("Remove piece", role: .destructive) {
+                if let pendingPiece {
+                    store.deleteGear(dropId: drop.id, pieceId: pendingPiece.id)
+                }
+                pendingPiece = nil
+            }
+            Button("Cancel", role: .cancel) { pendingPiece = nil }
+        }
+    }
+
+    private func pieceRow(drop: SkiDrop, piece: GearPiece) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Button {
+                store.toggleGear(dropId: drop.id, pieceId: piece.id)
+            } label: {
+                Image(systemName: piece.stowed ? "checkmark.square.fill" : "square")
+                    .foregroundColor(Color("AppAccent"))
+                    .frame(width: Theme.tap, height: Theme.tap)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("toggleGear_\(piece.id.uuidString)")
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(piece.name)
+                    .font(.system(.body, design: .rounded).weight(.semibold))
+                    .foregroundColor(Color("AppInk"))
+                    .strikethrough(piece.stowed)
+                Text(piece.why)
+                    .font(.system(.caption, design: .rounded))
+                    .foregroundColor(Color("AppInk").opacity(0.75))
+            }
+            Spacer(minLength: 0)
+            Button {
+                editingPiece = piece
+                showEditor = true
+            } label: {
+                Image(systemName: "pencil")
+                    .foregroundColor(Color("AppAccent"))
+                    .frame(width: Theme.tap, height: Theme.tap)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("editGear_\(piece.id.uuidString)")
+            Button {
+                pendingPiece = piece
+                confirmDelete = true
+            } label: {
+                Image(systemName: "trash")
+                    .foregroundColor(Color("AppAccent"))
+                    .frame(width: Theme.tap, height: Theme.tap)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("deleteGear_\(piece.id.uuidString)")
+        }
+        .ridgeTapTarget()
     }
 }

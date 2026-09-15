@@ -1,170 +1,113 @@
 import SwiftUI
 
-struct PackingItemEditorView: View {
+struct GearPieceEditorView: View {
     @EnvironmentObject private var store: AppStore
     @Environment(\.dismiss) private var dismiss
 
-    let tripId: UUID
-    let existing: PackingItem?
+    let dropId: UUID
+    let existing: GearPiece?
 
     @State private var name = ""
-    @State private var category = "Gadgets"
-    @State private var customCategory = ""
-    @State private var packed = false
+    @State private var why = ""
+    @State private var bay: GearBay = .bootBag
     @State private var nameError: String?
-
-    private var categories: [String] {
-        var list = store.categoryOrder
-        if !list.contains("Other") {
-            list.append("Other")
-        }
-        if !list.contains(category) && !category.isEmpty && category != "Custom" {
-            list.append(category)
-        }
-        return list
-    }
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 16) {
-                    TicketStubCard {
+                VStack(spacing: 18) {
+                    LiftPassCard {
                         VStack(spacing: 14) {
-                            JournalField(
-                                title: "Item name",
-                                identifier: "packingItemNameField",
+                            RidgeField(
+                                title: "Piece",
+                                identifier: "gearNameField",
                                 text: $name,
-                                placeholder: "Passport holder"
+                                placeholder: "Low-light lens"
                             )
                             if let nameError {
                                 InlineErrorText(message: nameError)
                             }
-
+                            RidgeField(
+                                title: "Why it rides",
+                                identifier: "gearWhyField",
+                                text: $why,
+                                placeholder: "Storm light goes flat in the trees"
+                            )
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("Category")
-                                    .font(.system(.caption, design: .serif))
+                                Text("Bay")
+                                    .font(.system(.caption, design: .rounded))
                                     .foregroundColor(Color("AppInk").opacity(0.85))
-                                Picker("Category", selection: $category) {
-                                    ForEach(categories, id: \.self) { item in
-                                        Text(item).tag(item)
+                                Picker("Bay", selection: $bay) {
+                                    ForEach(GearBay.allCases) { item in
+                                        Text(item.rawValue).tag(item)
                                     }
-                                    Text("Custom").tag("Custom")
                                 }
                                 .pickerStyle(.menu)
                                 .tint(Color("AppInk"))
                                 .frame(maxWidth: .infinity, minHeight: Theme.tap, alignment: .leading)
-                                .padding(.horizontal, 8)
-                                .background(Color("AppBackground").opacity(0.7))
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [5, 3]))
-                                        .foregroundColor(Color("AppAccent").opacity(0.55))
-                                }
-                                .accessibilityIdentifier("packingItemCategoryPicker")
+                                .accessibilityIdentifier("gearBayPicker")
                             }
-
-                            if category == "Custom" {
-                                JournalField(
-                                    title: "Custom category",
-                                    identifier: "packingItemCustomCategoryField",
-                                    text: $customCategory,
-                                    placeholder: "Documents"
-                                )
-                            }
-
-                            Toggle(isOn: $packed) {
-                                Text("Already packed")
-                                    .font(.system(.body, design: .serif))
-                                    .foregroundColor(Color("AppInk"))
-                            }
-                            .frame(minHeight: Theme.tap)
-                            .tint(Color("AppAccent"))
-                            .accessibilityIdentifier("packingItemPackedToggle")
                         }
                     }
 
-                    JournalPrimaryButton(
-                        title: existing == nil ? "Add item" : "Save item",
+                    RidgePrimaryButton(
+                        title: existing == nil ? "Add to kit" : "Save piece",
                         systemImage: "checkmark.circle.fill",
-                        identifier: "savePackingItemButton"
+                        identifier: "saveGearButton"
                     ) {
                         save()
                     }
                 }
-                .padding(16)
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+                .padding(.bottom, 28)
             }
-            .journalCanvas()
+            .clearScrollBackground()
+            .ridgeCanvas()
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Text(existing == nil ? "New essential" : "Edit essential")
-                        .font(.system(.headline, design: .serif))
-                        .accessibilityIdentifier("packingItemEditorTitle")
+                    Text(existing == nil ? "New piece" : "Edit piece")
+                        .font(.system(.headline, design: .rounded))
+                        .foregroundColor(Color("AppInk"))
                 }
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Close") { dismiss() }
                         .frame(minHeight: Theme.tap)
-                        .accessibilityIdentifier("cancelPackingItemEditorButton")
                 }
             }
-            .onAppear(perform: hydrate)
+            .onAppear {
+                if let existing {
+                    name = existing.name
+                    why = existing.why
+                    bay = existing.bay
+                }
+            }
         }
-    }
-
-    private func hydrate() {
-        guard let existing else {
-            category = store.categoryOrder.first ?? "Gadgets"
-            return
-        }
-        name = existing.name
-        category = existing.category
-        packed = existing.packed
     }
 
     private func save() {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty {
-            nameError = "Name is required"
-            Haptics.warning()
+            nameError = "Name the piece"
             return
         }
-        let resolvedCategory: String
-        if category == "Custom" {
-            let custom = customCategory.trimmingCharacters(in: .whitespacesAndNewlines)
-            resolvedCategory = custom.isEmpty ? "Other" : custom
-        } else {
-            resolvedCategory = category
-        }
-
-        if store.duplicateItemName(in: tripId, name: trimmed, excluding: existing?.id) {
-            nameError = "That item is already on this list"
-            Haptics.warning()
-            return
-        }
+        let reason = why.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedWhy = reason.isEmpty ? "Added for this drop." : reason
         nameError = nil
-
         if var existing {
             existing.name = trimmed
-            existing.category = resolvedCategory
-            existing.packed = packed
-            if store.updateItem(tripId: tripId, item: existing) {
-                Haptics.success()
+            existing.why = resolvedWhy
+            existing.bay = bay
+            if store.updateGear(dropId: dropId, piece: existing) {
                 dismiss()
             } else {
-                nameError = "That item is already on this list"
+                nameError = "Already in this kit"
             }
+        } else if store.addGear(dropId: dropId, name: trimmed, bay: bay, why: resolvedWhy) {
+            dismiss()
         } else {
-            if store.addItem(tripId: tripId, name: trimmed, category: resolvedCategory) {
-                if packed, let trip = store.trip(id: tripId), let added = trip.items.last {
-                    if !added.packed {
-                        store.togglePacked(tripId: tripId, itemId: added.id)
-                    }
-                }
-                Haptics.success()
-                dismiss()
-            } else {
-                nameError = "That item is already on this list"
-            }
+            nameError = "Already in this kit"
         }
     }
 }

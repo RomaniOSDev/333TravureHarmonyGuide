@@ -1,91 +1,67 @@
 import Foundation
 
-struct TravelUnit: Identifiable, Hashable {
-    enum Kind: String, CaseIterable, Identifiable {
-        case temperature = "Temp"
-        case distance = "Distance"
-        case mass = "Weight"
-        case zones = "Time"
+struct LayerLine: Identifiable, Hashable {
+    let id: String
+    let slot: String
+    let piece: String
+    let note: String
+}
 
-        var id: String { rawValue }
-    }
+enum LayerRecipe {
+    static func lines(tempC: Int, snow: SnowWindow) -> [LayerLine] {
+        var base = LayerLine(
+            id: "base",
+            slot: "Base",
+            piece: tempC <= -12 ? "Heavy merino, long sleeve + pant" : "Light merino set",
+            note: tempC <= -12
+                ? "The only day a thick base earns its bag space."
+                : "If you start heavier than this, you will vent too late."
+        )
+        var mid = LayerLine(
+            id: "mid",
+            slot: "Mid",
+            piece: tempC <= -8 ? "Grid fleece or light synthetic puffy" : "Vest or nothing",
+            note: "The mid is for the chair, not the lot. Add it at the maze."
+        )
+        var shell = LayerLine(
+            id: "shell",
+            slot: "Shell",
+            piece: snow == .dump ? "Taped 3L jacket + pant" : "Wind shell, pit zips open",
+            note: snow == .dump
+                ? "Softshell soaks. Taped or stay home after lunch."
+                : "Wind is the cold, not the snowflake count."
+        )
+        let spare = LayerLine(
+            id: "spare",
+            slot: "Spare",
+            piece: snow == .corn ? "Stowable vest only" : "Dry gloves + dry neck tube",
+            note: "The spare is for 1pm you, not 7am you."
+        )
 
-    var id: String { code }
-    let code: String
-    let displayName: String
-    let kind: Kind
-
-    static let catalog: [TravelUnit] = [
-        TravelUnit(code: "C", displayName: "Celsius", kind: .temperature),
-        TravelUnit(code: "F", displayName: "Fahrenheit", kind: .temperature),
-        TravelUnit(code: "km", displayName: "Kilometers", kind: .distance),
-        TravelUnit(code: "mi", displayName: "Miles", kind: .distance),
-        TravelUnit(code: "kg", displayName: "Kilograms", kind: .mass),
-        TravelUnit(code: "lb", displayName: "Pounds", kind: .mass),
-        TravelUnit(code: "Pacific/Honolulu", displayName: "Honolulu", kind: .zones),
-        TravelUnit(code: "America/Los_Angeles", displayName: "Los Angeles", kind: .zones),
-        TravelUnit(code: "America/New_York", displayName: "New York", kind: .zones),
-        TravelUnit(code: "America/Mexico_City", displayName: "Mexico City", kind: .zones),
-        TravelUnit(code: "America/Sao_Paulo", displayName: "São Paulo", kind: .zones),
-        TravelUnit(code: "Europe/London", displayName: "London", kind: .zones),
-        TravelUnit(code: "Europe/Paris", displayName: "Paris", kind: .zones),
-        TravelUnit(code: "Europe/Istanbul", displayName: "Istanbul", kind: .zones),
-        TravelUnit(code: "Africa/Cairo", displayName: "Cairo", kind: .zones),
-        TravelUnit(code: "Asia/Dubai", displayName: "Dubai", kind: .zones),
-        TravelUnit(code: "Asia/Bangkok", displayName: "Bangkok", kind: .zones),
-        TravelUnit(code: "Asia/Tokyo", displayName: "Tokyo", kind: .zones),
-        TravelUnit(code: "Australia/Sydney", displayName: "Sydney", kind: .zones),
-        TravelUnit(code: "Pacific/Auckland", displayName: "Auckland", kind: .zones)
-    ]
-
-    static func unit(for code: String) -> TravelUnit? {
-        let trimmed = code.trimmingCharacters(in: .whitespacesAndNewlines)
-        return catalog.first { $0.code.caseInsensitiveCompare(trimmed) == .orderedSame }
-    }
-
-    static func units(for kind: Kind) -> [TravelUnit] {
-        catalog.filter { $0.kind == kind }
-    }
-
-    static func convert(amount: Double, from: String, to: String) -> Double? {
-        guard let source = unit(for: from), let target = unit(for: to), source.kind == target.kind else {
-            return nil
+        if snow == .corn && tempC >= -2 {
+            base = LayerLine(
+                id: "base",
+                slot: "Base",
+                piece: "Light short-sleeve merino under a long-sleeve you can peel",
+                note: "Corn overheats. Plan a peel at 10:30."
+            )
+            mid = LayerLine(
+                id: "mid",
+                slot: "Mid",
+                piece: "None at first chair",
+                note: "You can add a vest. You cannot subtract a soaked fleece."
+            )
         }
-        if source.code == target.code { return amount }
-        switch source.kind {
-        case .temperature:
-            let celsius = source.code == "C" ? amount : (amount - 32) * 5 / 9
-            return target.code == "C" ? celsius : celsius * 9 / 5 + 32
-        case .distance:
-            let kilometers = source.code == "km" ? amount : amount * 1.60934
-            return target.code == "km" ? kilometers : kilometers / 1.60934
-        case .mass:
-            let kilograms = source.code == "kg" ? amount : amount / 2.20462
-            return target.code == "kg" ? kilograms : kilograms * 2.20462
-        case .zones:
-            return nil
-        }
-    }
 
-    static func clockTime(in identifier: String, from date: Date = Date()) -> String {
-        let formatter = DateFormatter()
-        formatter.timeZone = TimeZone(identifier: identifier) ?? .current
-        formatter.timeStyle = .short
-        formatter.dateStyle = .none
-        return formatter.string(from: date)
-    }
-
-    static func convertClock(_ date: Date, from fromID: String, to toID: String) -> Date? {
-        guard let fromZone = TimeZone(identifier: fromID), TimeZone(identifier: toID) != nil else {
-            return nil
+        if snow == .groomer && tempC <= -6 {
+            shell = LayerLine(
+                id: "shell",
+                slot: "Shell",
+                piece: "Windproof with a high collar",
+                note: "Groomer wind on an open piste is colder than a dump in the trees."
+            )
         }
-        var fromCalendar = Calendar(identifier: .gregorian)
-        fromCalendar.timeZone = fromZone
-        let clock = Calendar.current.dateComponents([.hour, .minute], from: date)
-        var parts = fromCalendar.dateComponents([.year, .month, .day], from: Date())
-        parts.hour = clock.hour
-        parts.minute = clock.minute
-        parts.second = 0
-        return fromCalendar.date(from: parts)
+
+        return [base, mid, shell, spare]
     }
 }

@@ -2,53 +2,45 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var store = AppStore()
-    @State private var section: JournalSection = .destinations
+    @State private var section: AppSection = .launch
     @State private var showSettings = false
-    @State private var showInsights = false
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                sectionSwitcher
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
-                    .padding(.bottom, 10)
+            ZStack {
+                Color.clear
+                VStack(spacing: 0) {
+                    sectionSwitcher
+                        .padding(.horizontal, 16)
+                        .padding(.top, 8)
+                        .padding(.bottom, 10)
 
-                Group {
-                    switch section {
-                    case .destinations:
-                        DestinationListView()
-                    case .packing:
-                        PackingTripListView()
-                    case .units:
-                        UnitConverterView()
+                    Group {
+                        switch section {
+                        case .launch:
+                            LaunchHomeView()
+                        case .kit:
+                            KitBayView()
+                        case .briefs:
+                            BriefsLibraryView()
+                        }
                     }
+                    .id(section)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                .id(section)
             }
-            .journalCanvas()
+            .ridgeCanvas()
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     HStack(spacing: 8) {
-                        Image(systemName: "safari.fill")
+                        Image(systemName: "figure.skiing.downhill")
                             .foregroundColor(Color("AppAccent"))
                         Text(section.title)
-                            .font(.system(.headline, design: .serif))
+                            .font(.system(.headline, design: .rounded))
                             .foregroundColor(Color("AppInk"))
                     }
                     .accessibilityIdentifier("screenTitle")
-                }
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button {
-                        showInsights = true
-                    } label: {
-                        Image(systemName: "chart.bar.xaxis")
-                            .foregroundColor(Color("AppInk"))
-                            .frame(minWidth: Theme.tap, minHeight: Theme.tap)
-                    }
-                    .accessibilityIdentifier("openInsightsButton")
-                    .accessibilityLabel("Statistics")
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
@@ -66,22 +58,18 @@ struct ContentView: View {
                 SettingsView()
                     .environmentObject(store)
             }
-            .sheet(isPresented: $showInsights) {
-                TripInsightView()
-                    .environmentObject(store)
-            }
         }
         .environmentObject(store)
         .preferredColorScheme(.dark)
         .tint(Color("AppAccent"))
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("dataReset"))) { _ in
-            section = .destinations
+            section = .launch
         }
     }
 
     private var sectionSwitcher: some View {
         HStack(spacing: 4) {
-            ForEach(JournalSection.allCases) { item in
+            ForEach(AppSection.allCases) { item in
                 Button {
                     Haptics.light()
                     section = item
@@ -89,7 +77,7 @@ struct ContentView: View {
                     HStack(spacing: 6) {
                         Image(systemName: item.symbol)
                         Text(item.title)
-                            .font(.system(.caption, design: .serif).weight(.semibold))
+                            .font(.system(.caption, design: .rounded).weight(.semibold))
                             .lineLimit(1)
                     }
                     .foregroundColor(section == item ? .white : Color("AppInk"))
@@ -112,7 +100,7 @@ struct ContentView: View {
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("section_\(item.rawValue)")
                 .accessibilityLabel(item.title)
-                .journalTapTarget()
+                .ridgeTapTarget()
             }
         }
         .padding(5)
@@ -121,8 +109,7 @@ struct ContentView: View {
                 .fill(Color("AppSurface"))
                 .shadow(color: Color("AppPrimary").opacity(0.16), radius: 6, y: 3)
             Capsule()
-                .strokeBorder(style: StrokeStyle(lineWidth: 1.2, dash: [5, 3]))
-                .foregroundColor(Color("AppAccent").opacity(0.7))
+                .strokeBorder(Color("AppAccent").opacity(0.55), lineWidth: 1)
         }
         .accessibilityIdentifier("sectionSwitcher")
     }

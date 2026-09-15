@@ -1,10 +1,10 @@
 import SwiftUI
 import UIKit
 
-enum JournalSection: String, CaseIterable, Identifiable {
-    case destinations = "Destinations"
-    case packing = "Packing"
-    case units = "Units"
+enum AppSection: String, CaseIterable, Identifiable {
+    case launch = "Launch"
+    case kit = "Kit"
+    case briefs = "Briefs"
 
     var id: String { rawValue }
 
@@ -12,9 +12,9 @@ enum JournalSection: String, CaseIterable, Identifiable {
 
     var symbol: String {
         switch self {
-        case .destinations: return "globe"
-        case .packing: return "suitcase.fill"
-        case .units: return "ruler.fill"
+        case .launch: return "clock.fill"
+        case .kit: return "bag.fill"
+        case .briefs: return "map.fill"
         }
     }
 }
@@ -28,12 +28,12 @@ enum Theme {
 }
 
 extension View {
-    func journalCanvas() -> some View {
+    func ridgeCanvas() -> some View {
         self
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background {
                 Color("AppBackground").overlay {
-                    Image("bgAlley").resizable().scaledToFill().opacity(0.22)
+                    Image("bgAlley").resizable().scaledToFill().opacity(0.18)
                 }
                 .clipped()
                 .ignoresSafeArea()
@@ -45,8 +45,13 @@ extension View {
             .preferredColorScheme(.dark)
     }
 
-    func journalTapTarget() -> some View {
+    func ridgeTapTarget() -> some View {
         self.frame(minWidth: Theme.tap, minHeight: Theme.tap)
+    }
+
+    func clearScrollBackground() -> some View {
+        scrollContentBackground(.hidden)
+            .background(Color.clear)
     }
 }
 
@@ -62,13 +67,13 @@ private final class KeyboardDismissInstaller: UIView {
     override func didMoveToWindow() {
         super.didMoveToWindow()
         guard let window else { return }
-        if window.gestureRecognizers?.contains(where: { $0.name == "journal.dismissKeyboard" }) == true {
+        if window.gestureRecognizers?.contains(where: { $0.name == "ridge.dismissKeyboard" }) == true {
             return
         }
         let tap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
         tap.cancelsTouchesInView = false
         tap.requiresExclusiveTouchType = false
-        tap.name = "journal.dismissKeyboard"
+        tap.name = "ridge.dismissKeyboard"
         window.addGestureRecognizer(tap)
     }
 
@@ -77,13 +82,13 @@ private final class KeyboardDismissInstaller: UIView {
     }
 }
 
-struct JournalBanner: View {
+struct RidgeBanner: View {
     let imageName: String
 
     var body: some View {
         Color.clear
             .frame(maxWidth: .infinity)
-            .frame(height: 132)
+            .frame(height: 128)
             .background {
                 Color("AppBackground").overlay {
                     Image(imageName)
@@ -92,20 +97,30 @@ struct JournalBanner: View {
                 }
                 .clipped()
             }
-            .overlay {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [7, 5]))
-                    .foregroundColor(Color("AppAccent").opacity(0.85))
-                    .padding(6)
+            .overlay(alignment: .leading) {
+                Circle()
+                    .fill(Color("AppBackground"))
+                    .frame(width: 22, height: 22)
+                    .offset(x: -11)
             }
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(alignment: .trailing) {
+                Circle()
+                    .fill(Color("AppBackground"))
+                    .frame(width: 22, height: 22)
+                    .offset(x: 11)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(Color("AppAccent").opacity(0.55), lineWidth: 1.2)
+            }
             .shadow(color: Color("AppPrimary").opacity(0.22), radius: 8, y: 4)
             .allowsHitTesting(false)
             .accessibilityHidden(true)
     }
 }
 
-struct TicketStubCard<Content: View>: View {
+struct LiftPassCard<Content: View>: View {
     private let content: Content
 
     init(@ViewBuilder content: () -> Content) {
@@ -115,66 +130,69 @@ struct TicketStubCard<Content: View>: View {
     var body: some View {
         content
             .padding(16)
+            .padding(.leading, 10)
             .background {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(Color("AppSurface"))
-                    .shadow(color: Color("AppPrimary").opacity(0.18), radius: 8, x: 0, y: 4)
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(style: StrokeStyle(lineWidth: 1.4, dash: [6, 4]))
-                    .foregroundColor(Color("AppAccent").opacity(0.6))
+                    .shadow(color: Color("AppPrimary").opacity(0.18), radius: 8, y: 4)
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(Color("AppAccent").opacity(0.45), lineWidth: 1)
+            }
+            .overlay(alignment: .leading) {
+                VStack(spacing: 10) {
+                    ForEach(0..<4, id: \.self) { _ in
+                        Circle()
+                            .strokeBorder(Color("AppAccent").opacity(0.7), lineWidth: 1.2)
+                            .frame(width: 8, height: 8)
+                    }
+                }
+                .padding(.leading, 8)
             }
     }
 }
 
-struct PassportStamp: View {
+struct ChairPunch: View {
     let symbol: String
     let caption: String
-    var rotation: Double = -8
 
     var body: some View {
         VStack(spacing: 4) {
             Image(systemName: symbol)
-                .font(.system(size: 20, weight: .semibold))
+                .font(.system(size: 18, weight: .semibold, design: .rounded))
             Text(caption)
-                .font(.system(.caption2, design: .serif))
+                .font(.system(.caption2, design: .rounded))
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
         }
         .foregroundColor(Color("AppInk"))
-        .frame(width: 76, height: 76)
+        .frame(width: 78, height: 78)
         .background(
-            Circle()
-                .fill(Color("AppSurface").opacity(0.9))
-                .shadow(color: Color("AppPrimary").opacity(0.16), radius: 4, y: 2)
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color("AppSurface").opacity(0.95))
         )
         .overlay {
-            Circle()
-                .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [3, 2]))
-                .foregroundColor(Color("AppAccent"))
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(Color("AppAccent"), lineWidth: 1.6)
         }
-        .rotationEffect(.degrees(rotation))
     }
 }
 
-struct JournalEmptyState: View {
+struct RidgeEmptyState: View {
     let symbol: String
     let message: String
 
     var body: some View {
         VStack(spacing: 18) {
             ZStack {
-                Circle()
-                    .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [4, 3]))
-                    .foregroundColor(Color("AppAccent"))
-                    .frame(width: 92, height: 92)
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(Color("AppAccent"), lineWidth: 1.6)
+                    .frame(width: 88, height: 88)
                 Image(systemName: symbol)
-                    .font(.system(size: 36, weight: .semibold))
+                    .font(.system(size: 34, weight: .semibold, design: .rounded))
                     .foregroundColor(Color("AppInk"))
             }
-            .shadow(color: Color("AppPrimary").opacity(0.12), radius: 6, y: 3)
-
             Text(message)
-                .font(.system(.body, design: .serif))
+                .font(.system(.body, design: .rounded))
                 .multilineTextAlignment(.center)
                 .foregroundColor(Color("AppInk"))
                 .padding(.horizontal, 12)
@@ -184,7 +202,7 @@ struct JournalEmptyState: View {
     }
 }
 
-struct JournalPrimaryButton: View {
+struct RidgePrimaryButton: View {
     let title: String
     let systemImage: String
     var identifier: String
@@ -195,12 +213,12 @@ struct JournalPrimaryButton: View {
             HStack(spacing: 8) {
                 Image(systemName: systemImage)
                 Text(title)
-                    .font(.system(.headline, design: .serif))
+                    .font(.system(.headline, design: .rounded))
             }
             .foregroundColor(.white)
             .frame(maxWidth: .infinity, minHeight: Theme.tap)
             .background {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(
                         LinearGradient(
                             colors: [Color("AppPrimary"), Color("AppAccent")],
@@ -213,40 +231,11 @@ struct JournalPrimaryButton: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier(identifier)
-        .journalTapTarget()
+        .ridgeTapTarget()
     }
 }
 
-struct JournalIconButton: View {
-    let systemImage: String
-    var identifier: String
-    var action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(.white)
-                .frame(width: Theme.tap, height: Theme.tap)
-                .background {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [Color("AppPrimary"), Color("AppAccent")],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .shadow(color: Color("AppPrimary").opacity(0.28), radius: 4, y: 2)
-                }
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier(identifier)
-        .journalTapTarget()
-    }
-}
-
-struct JournalField: View {
+struct RidgeField: View {
     let title: String
     let identifier: String
     @Binding var text: String
@@ -255,7 +244,7 @@ struct JournalField: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
-                .font(.system(.caption, design: .serif))
+                .font(.system(.caption, design: .rounded))
                 .foregroundColor(Color("AppInk").opacity(0.85))
             TextField(placeholder, text: $text)
                 .foregroundColor(Color("AppInk"))
@@ -266,8 +255,7 @@ struct JournalField: View {
                 .background(Color("AppBackground").opacity(0.7))
                 .overlay {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [5, 3]))
-                        .foregroundColor(Color("AppAccent").opacity(0.55))
+                        .strokeBorder(Color("AppAccent").opacity(0.5), lineWidth: 1)
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .accessibilityIdentifier(identifier)
@@ -280,7 +268,7 @@ struct InlineErrorText: View {
 
     var body: some View {
         Text(message)
-            .font(.system(.caption, design: .serif))
+            .font(.system(.caption, design: .rounded))
             .foregroundColor(Color("AppAccent"))
             .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityIdentifier("inlineError")

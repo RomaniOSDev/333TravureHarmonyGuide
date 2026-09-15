@@ -9,10 +9,21 @@ struct SettingsView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
-                    PassportStamp(symbol: "location.north.line.fill", caption: "Journal", rotation: -6)
+                    ChairPunch(symbol: "figure.skiing.downhill", caption: "Chairline")
                         .padding(.top, 8)
 
-                    TicketStubCard {
+                    LiftPassCard {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("What this is")
+                                .font(.system(.headline, design: .rounded))
+                                .foregroundColor(Color("AppInk"))
+                            Text("A first-chair launch pad: countdown, snow-specific kit, and original ridge briefs. Not a travel journal, not a unit converter, not a generic packing app.")
+                                .font(.system(.caption, design: .rounded))
+                                .foregroundColor(Color("AppInk").opacity(0.8))
+                        }
+                    }
+
+                    LiftPassCard {
                         VStack(spacing: 8) {
                             settingsRow(
                                 title: "Rate Us",
@@ -40,13 +51,13 @@ struct SettingsView: View {
                         }
                     }
 
-                    TicketStubCard {
+                    LiftPassCard {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Danger zone")
-                                .font(.system(.headline, design: .serif))
+                            Text("Clear this device")
+                                .font(.system(.headline, design: .rounded))
                                 .foregroundColor(Color("AppInk"))
-                            Text("Clears destinations, notes, packing lists, documents, photos, and logged conversions from this device.")
-                                .font(.system(.caption, design: .serif))
+                            Text("Removes ski drops, kit checks, and dawn beats stored on this iPhone.")
+                                .font(.system(.caption, design: .rounded))
                                 .foregroundColor(Color("AppInk").opacity(0.78))
                             Button {
                                 confirmReset = true
@@ -54,12 +65,12 @@ struct SettingsView: View {
                                 HStack(spacing: 8) {
                                     Image(systemName: "trash.fill")
                                     Text("Reset All Data")
-                                        .font(.system(.headline, design: .serif))
+                                        .font(.system(.headline, design: .rounded))
                                 }
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity, minHeight: Theme.tap)
                                 .background {
-                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
                                         .fill(
                                             LinearGradient(
                                                 colors: [Color("AppAccent"), Color("AppPrimary")],
@@ -72,18 +83,19 @@ struct SettingsView: View {
                             }
                             .buttonStyle(.plain)
                             .accessibilityIdentifier("resetDataButton")
-                            .journalTapTarget()
+                            .ridgeTapTarget()
                         }
                     }
                 }
                 .padding(16)
             }
-            .journalCanvas()
+            .clearScrollBackground()
+            .ridgeCanvas()
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text("Settings")
-                        .font(.system(.headline, design: .serif))
+                        .font(.system(.headline, design: .rounded))
                         .foregroundColor(Color("AppInk"))
                         .accessibilityIdentifier("settingsTitle")
                 }
@@ -106,7 +118,7 @@ struct SettingsView: View {
                 Button("Cancel", role: .cancel) {}
                     .accessibilityIdentifier("cancelResetDataButton")
             } message: {
-                Text("This cannot be undone. All journal entries, packing lists, and conversion values will be removed.")
+                Text("This cannot be undone. Drops, kits, and dawn checks will be removed.")
             }
         }
     }
@@ -115,11 +127,6 @@ struct SettingsView: View {
         Rectangle()
             .fill(Color("AppAccent").opacity(0.35))
             .frame(height: 1)
-            .overlay(
-                Rectangle()
-                    .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
-                    .foregroundColor(Color("AppAccent").opacity(0.5))
-            )
     }
 
     private func settingsRow(title: String, symbol: String, identifier: String, action: @escaping () -> Void) -> some View {
@@ -129,7 +136,7 @@ struct SettingsView: View {
                     .foregroundColor(.white)
                     .frame(width: 32, height: 32)
                     .background(
-                        Circle()
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
                             .fill(
                                 LinearGradient(
                                     colors: [Color("AppPrimary"), Color("AppAccent")],
@@ -139,7 +146,7 @@ struct SettingsView: View {
                             )
                     )
                 Text(title)
-                    .font(.system(.body, design: .serif))
+                    .font(.system(.body, design: .rounded))
                     .foregroundColor(Color("AppInk"))
                 Spacer()
                 Image(systemName: "chevron.right")
@@ -150,6 +157,6 @@ struct SettingsView: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier(identifier)
-        .journalTapTarget()
+        .ridgeTapTarget()
     }
 }

@@ -1,183 +1,180 @@
 import SwiftUI
 
-struct DestinationEditorView: View {
+struct DropEditorView: View {
     @EnvironmentObject private var store: AppStore
     @Environment(\.dismiss) private var dismiss
 
-    let existing: Destination?
+    let existing: SkiDrop?
 
-    @State private var name = ""
-    @State private var country = ""
-    @State private var regionCode = ""
-    @State private var climate = ClimateKind.temperate.rawValue
-    @State private var hasDate = false
-    @State private var plannedDate = Date()
-    @State private var timeZoneIdentifier = ""
-    @State private var nameError: String?
+    @State private var title = ""
+    @State private var ridgeId = RidgeCatalog.all[0].id
+    @State private var firstChairAt = Calendar.current.date(byAdding: .day, value: 7, to: Date()) ?? Date()
+    @State private var nights = 3
+    @State private var travel: TravelMode = .drive
+    @State private var snow: SnowWindow = .mixed
+    @State private var chairTempC = -4
+    @State private var titleError: String?
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 16) {
-                    TicketStubCard {
+                VStack(spacing: 18) {
+                    LiftPassCard {
                         VStack(spacing: 14) {
-                            JournalField(
-                                title: "Destination name",
-                                identifier: "destinationNameField",
-                                text: $name,
-                                placeholder: "Kyoto, Lisbon, Oaxaca…"
+                            RidgeField(
+                                title: "Drop name",
+                                identifier: "dropTitleField",
+                                text: $title,
+                                placeholder: "Sunday first chair"
                             )
-                            if let nameError {
-                                InlineErrorText(message: nameError)
+                            if let titleError {
+                                InlineErrorText(message: titleError)
                             }
 
-                            JournalField(
-                                title: "Country",
-                                identifier: "destinationCountryField",
-                                text: $country,
-                                placeholder: "Japan"
-                            )
-
-                            JournalField(
-                                title: "Region code",
-                                identifier: "destinationRegionField",
-                                text: $regionCode,
-                                placeholder: "EU, JP, UK, TH…"
-                            )
-
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("Climate")
-                                    .font(.system(.caption, design: .serif))
+                                Text("Ridge brief")
+                                    .font(.system(.caption, design: .rounded))
                                     .foregroundColor(Color("AppInk").opacity(0.85))
-                                Picker("Climate", selection: $climate) {
-                                    ForEach(ClimateKind.allCases) { kind in
-                                        Text(kind.rawValue).tag(kind.rawValue)
+                                Picker("Ridge brief", selection: $ridgeId) {
+                                    ForEach(RidgeCatalog.all) { brief in
+                                        Text(brief.name).tag(brief.id)
                                     }
                                 }
                                 .pickerStyle(.menu)
                                 .tint(Color("AppInk"))
                                 .frame(maxWidth: .infinity, minHeight: Theme.tap, alignment: .leading)
-                                .padding(.horizontal, 8)
-                                .background(Color("AppBackground").opacity(0.7))
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [5, 3]))
-                                        .foregroundColor(Color("AppAccent").opacity(0.55))
+                                .accessibilityIdentifier("ridgePicker")
+                                .onChange(of: ridgeId) { newId in
+                                    let brief = RidgeCatalog.brief(id: newId)
+                                    snow = brief.defaultSnow
+                                    travel = brief.defaultTravel
                                 }
-                                .accessibilityIdentifier("destinationClimatePicker")
                             }
 
-                            Toggle(isOn: $hasDate) {
-                                Text("Set travel date")
-                                    .font(.system(.body, design: .serif))
+                            DatePicker(
+                                "First chair",
+                                selection: $firstChairAt
+                            )
+                            .font(.system(.body, design: .rounded))
+                            .foregroundColor(Color("AppInk"))
+                            .tint(Color("AppAccent"))
+                            .accessibilityIdentifier("firstChairPicker")
+
+                            Stepper(value: $nights, in: 1...14) {
+                                Text("\(nights) nights on hill")
+                                    .font(.system(.body, design: .rounded))
                                     .foregroundColor(Color("AppInk"))
                             }
-                            .frame(minHeight: Theme.tap)
-                            .tint(Color("AppAccent"))
-                            .accessibilityIdentifier("destinationDateToggle")
+                            .accessibilityIdentifier("nightsStepper")
 
-                            if hasDate {
-                                DatePicker(
-                                    "Planned date",
-                                    selection: $plannedDate,
-                                    displayedComponents: .date
-                                )
-                                .datePickerStyle(.compact)
-                                .frame(minHeight: Theme.tap)
-                                .accessibilityIdentifier("destinationDatePicker")
+                            Picker("Travel", selection: $travel) {
+                                ForEach(TravelMode.allCases) { mode in
+                                    Text(mode.rawValue).tag(mode)
+                                }
                             }
+                            .pickerStyle(.segmented)
+                            .accessibilityIdentifier("travelPicker")
 
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("Local time zone")
-                                    .font(.system(.caption, design: .serif))
-                                    .foregroundColor(Color("AppInk").opacity(0.85))
-                                Picker("Time zone", selection: $timeZoneIdentifier) {
-                                    Text("Device time").tag("")
-                                    ForEach(TravelUnit.units(for: .zones)) { zone in
-                                        Text(zone.displayName).tag(zone.code)
-                                    }
+                            Picker("Snow window", selection: $snow) {
+                                ForEach(SnowWindow.allCases) { window in
+                                    Text(window.rawValue).tag(window)
                                 }
-                                .pickerStyle(.menu)
-                                .tint(Color("AppInk"))
-                                .frame(maxWidth: .infinity, minHeight: Theme.tap, alignment: .leading)
-                                .padding(.horizontal, 8)
-                                .background(Color("AppBackground").opacity(0.7))
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [5, 3]))
-                                        .foregroundColor(Color("AppAccent").opacity(0.55))
-                                }
-                                .accessibilityIdentifier("destinationTimeZonePicker")
                             }
+                            .pickerStyle(.menu)
+                            .tint(Color("AppInk"))
+                            .frame(maxWidth: .infinity, minHeight: Theme.tap, alignment: .leading)
+                            .accessibilityIdentifier("snowPicker")
+
+                            Stepper(value: $chairTempC, in: -25...10) {
+                                Text("First-chair feel \(chairTempC)°C")
+                                    .font(.system(.body, design: .rounded))
+                                    .foregroundColor(Color("AppInk"))
+                            }
+                            .accessibilityIdentifier("tempStepper")
                         }
                     }
 
-                    JournalPrimaryButton(
-                        title: existing == nil ? "Save destination" : "Update destination",
+                    LiftPassCard {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(RidgeCatalog.brief(id: ridgeId).name)
+                                .font(.system(.headline, design: .rounded))
+                                .foregroundColor(Color("AppInk"))
+                            Text(RidgeCatalog.brief(id: ridgeId).snowRead)
+                                .font(.system(.caption, design: .rounded))
+                                .foregroundColor(Color("AppInk").opacity(0.8))
+                        }
+                    }
+
+                    RidgePrimaryButton(
+                        title: existing == nil ? "Set the drop" : "Save drop",
                         systemImage: "checkmark.circle.fill",
-                        identifier: "saveDestinationButton"
+                        identifier: "saveDropButton"
                     ) {
                         save()
                     }
                 }
-                .padding(16)
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+                .padding(.bottom, 28)
             }
-            .journalCanvas()
+            .clearScrollBackground()
+            .ridgeCanvas()
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Text(existing == nil ? "New destination" : "Edit destination")
-                        .font(.system(.headline, design: .serif))
-                        .accessibilityIdentifier("destinationEditorTitle")
+                    Text(existing == nil ? "New drop" : "Edit drop")
+                        .font(.system(.headline, design: .rounded))
+                        .foregroundColor(Color("AppInk"))
                 }
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Close") { dismiss() }
                         .frame(minHeight: Theme.tap)
-                        .accessibilityIdentifier("cancelDestinationEditorButton")
+                        .accessibilityIdentifier("closeDropEditorButton")
                 }
             }
-            .onAppear(perform: hydrate)
-        }
-    }
-
-    private func hydrate() {
-        guard let existing else { return }
-        name = existing.name
-        country = existing.country
-        regionCode = existing.regionCode
-        climate = existing.climate
-        timeZoneIdentifier = existing.timeZoneIdentifier
-        if let date = existing.plannedDate {
-            hasDate = true
-            plannedDate = date
+            .onAppear {
+                if let existing {
+                    title = existing.title
+                    ridgeId = existing.ridgeId
+                    firstChairAt = existing.firstChairAt
+                    nights = existing.nights
+                    travel = existing.travel
+                    snow = existing.snow
+                    chairTempC = existing.chairTempC
+                }
+            }
         }
     }
 
     private func save() {
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty {
-            nameError = "Name is required"
-            Haptics.warning()
+            titleError = "Name the drop"
             return
         }
-        nameError = nil
-        let record = Destination(
-            id: existing?.id ?? UUID(),
-            name: trimmed,
-            country: country.trimmingCharacters(in: .whitespacesAndNewlines),
-            regionCode: regionCode.trimmingCharacters(in: .whitespacesAndNewlines),
-            plannedDate: hasDate ? plannedDate : nil,
-            visited: existing?.visited ?? false,
-            climate: climate,
-            coverPhotoName: existing?.coverPhotoName,
-            timeZoneIdentifier: timeZoneIdentifier
-        )
-        if existing == nil {
-            store.addDestination(record)
+        titleError = nil
+        if var existing {
+            existing.title = trimmed
+            existing.ridgeId = ridgeId
+            existing.firstChairAt = firstChairAt
+            existing.nights = nights
+            existing.travel = travel
+            existing.snow = snow
+            existing.chairTempC = chairTempC
+            store.updateDrop(existing)
         } else {
-            store.updateDestination(record)
+            store.addDrop(
+                SkiDrop(
+                    title: trimmed,
+                    ridgeId: ridgeId,
+                    firstChairAt: firstChairAt,
+                    nights: nights,
+                    travel: travel,
+                    snow: snow,
+                    chairTempC: chairTempC
+                )
+            )
         }
-        Haptics.success()
         dismiss()
     }
 }

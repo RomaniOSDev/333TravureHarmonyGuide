@@ -1,140 +1,108 @@
 import Foundation
 
-struct PackingItem: Identifiable, Codable, Equatable, Hashable {
-    var id: UUID
-    var name: String
-    var category: String
-    var packed: Bool
-
-    init(id: UUID = UUID(), name: String, category: String, packed: Bool = false) {
-        self.id = id
-        self.name = name
-        self.category = category
-        self.packed = packed
-    }
-
-    static func suggested(for regionCode: String, climate: String = ClimateKind.temperate.rawValue) -> [PackingItem] {
-        let region = regionCode.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-        let adapterName: String
-        switch region {
-        case "EU", "FR", "DE", "IT", "ES", "NL", "PT", "AT", "BE", "GR", "IE":
-            adapterName = "Plug adapter Type C"
-        case "JP", "JPN":
-            adapterName = "Plug adapter Type A/B"
-        case "UK", "GB":
-            adapterName = "Plug adapter Type G"
-        case "AU", "AUS", "NZ":
-            adapterName = "Plug adapter Type I"
-        case "TH", "THA":
-            adapterName = "Plug adapter Type A/C/O"
-        case "MX", "MEX", "US", "USA", "CA", "CAN":
-            adapterName = "Plug adapter Type A/B"
-        case "CN", "CHN":
-            adapterName = "Plug adapter Type A/C/I"
-        default:
-            adapterName = "Universal plug adapter"
-        }
-
-        var extras: [PackingItem] = []
-        switch region {
-        case "JP", "JPN":
-            extras.append(PackingItem(name: "Pocket Wi-Fi reminder", category: "Gadgets"))
-        case "UK", "GB":
-            extras.append(PackingItem(name: "Compact rain jacket", category: "Clothing"))
-        case "TH", "THA":
-            extras.append(PackingItem(name: "Mosquito repellent", category: "Toiletries"))
-        case "AU", "AUS":
-            extras.append(PackingItem(name: "High-SPF sunscreen", category: "Toiletries"))
-        default:
-            break
-        }
-
-        switch ClimateKind.resolved(climate) {
-        case .tropical:
-            extras.append(PackingItem(name: "Light breathable shirts", category: "Clothing"))
-            extras.append(PackingItem(name: "Insect repellent", category: "Toiletries"))
-        case .desert:
-            extras.append(PackingItem(name: "Sun hat", category: "Clothing"))
-            extras.append(PackingItem(name: "Reusable water bottle", category: "Other"))
-        case .alpine:
-            extras.append(PackingItem(name: "Thermal layer", category: "Clothing"))
-        case .coastal:
-            extras.append(PackingItem(name: "Swimwear", category: "Clothing"))
-        case .polar:
-            extras.append(PackingItem(name: "Insulated gloves", category: "Clothing"))
-        case .urban:
-            extras.append(PackingItem(name: "Comfortable city shoes", category: "Clothing"))
-        case .temperate:
-            break
-        }
-
-        return [
-            PackingItem(name: adapterName, category: "Gadgets"),
-            PackingItem(name: "Portable charger", category: "Gadgets"),
-            PackingItem(name: "Phone cable", category: "Gadgets"),
-            PackingItem(name: "Comfortable walking shoes", category: "Clothing"),
-            PackingItem(name: "Weather-ready jacket", category: "Clothing"),
-            PackingItem(name: "Day outfit set", category: "Clothing"),
-            PackingItem(name: "Toothbrush & toothpaste", category: "Toiletries"),
-            PackingItem(name: "Travel-size shampoo", category: "Toiletries"),
-            PackingItem(name: "Sunscreen", category: "Toiletries")
-        ] + extras
-    }
-}
-
-enum PackingTemplate: String, CaseIterable, Identifiable {
-    case blank = "Blank"
-    case city = "City break"
-    case beach = "Beach"
-    case hiking = "Hiking"
-    case winter = "Winter"
+enum GearBay: String, CaseIterable, Identifiable, Codable {
+    case bootBag = "Boot bag"
+    case cabin = "Cabin"
+    case hold = "Hold / roof"
+    case car = "Car cache"
 
     var id: String { rawValue }
 
-    var items: [PackingItem] {
+    var symbol: String {
         switch self {
-        case .blank:
-            return []
-        case .city:
-            return [
-                PackingItem(name: "Comfortable walking shoes", category: "Clothing"),
-                PackingItem(name: "Smart-casual outfit", category: "Clothing"),
-                PackingItem(name: "Light jacket", category: "Clothing"),
-                PackingItem(name: "Day bag", category: "Other"),
-                PackingItem(name: "Portable charger", category: "Gadgets"),
-                PackingItem(name: "Transit cards / tickets folder", category: "Documents"),
-                PackingItem(name: "Earplugs", category: "Other")
-            ]
-        case .beach:
-            return [
-                PackingItem(name: "Swimwear", category: "Clothing"),
-                PackingItem(name: "Cover-up / sundress", category: "Clothing"),
-                PackingItem(name: "Flip-flops", category: "Clothing"),
-                PackingItem(name: "High-SPF sunscreen", category: "Toiletries"),
-                PackingItem(name: "After-sun lotion", category: "Toiletries"),
-                PackingItem(name: "Dry bag", category: "Other"),
-                PackingItem(name: "Reusable water bottle", category: "Other")
-            ]
-        case .hiking:
-            return [
-                PackingItem(name: "Trail shoes", category: "Clothing"),
-                PackingItem(name: "Moisture-wicking shirts", category: "Clothing"),
-                PackingItem(name: "Rain shell", category: "Clothing"),
-                PackingItem(name: "Blister kit", category: "Toiletries"),
-                PackingItem(name: "Headlamp", category: "Gadgets"),
-                PackingItem(name: "Daypack", category: "Other"),
-                PackingItem(name: "Trail snacks", category: "Other")
-            ]
-        case .winter:
-            return [
-                PackingItem(name: "Insulated coat", category: "Clothing"),
-                PackingItem(name: "Thermal base layers", category: "Clothing"),
-                PackingItem(name: "Warm socks", category: "Clothing"),
-                PackingItem(name: "Gloves and beanie", category: "Clothing"),
-                PackingItem(name: "Lip balm", category: "Toiletries"),
-                PackingItem(name: "Portable charger", category: "Gadgets"),
-                PackingItem(name: "Spare warm layer", category: "Clothing")
-            ]
+        case .bootBag: return "figure.skiing.downhill"
+        case .cabin: return "backpack.fill"
+        case .hold: return "shippingbox.fill"
+        case .car: return "car.fill"
         }
+    }
+}
+
+struct GearPiece: Identifiable, Codable, Equatable, Hashable {
+    var id: UUID
+    var name: String
+    var bay: GearBay
+    var why: String
+    var stowed: Bool
+
+    init(
+        id: UUID = UUID(),
+        name: String,
+        bay: GearBay,
+        why: String,
+        stowed: Bool = false
+    ) {
+        self.id = id
+        self.name = name
+        self.bay = bay
+        self.why = why
+        self.stowed = stowed
+    }
+}
+
+enum KitFactory {
+    static func build(travel: TravelMode, snow: SnowWindow, nights: Int) -> [GearPiece] {
+        var pieces: [GearPiece] = [
+            GearPiece(name: "Ski/board boots", bay: .bootBag, why: "Keep them in the cabin or boot bag so they stay dry and warm overnight."),
+            GearPiece(name: "Helmet", bay: .bootBag, why: "Pad it between socks so the shell does not crack in transit."),
+            GearPiece(name: "Goggles — bright lens", bay: .bootBag, why: "Hardpack and corn need a high-contrast sunny lens."),
+            GearPiece(name: "Liner gloves + shells", bay: .bootBag, why: "Swap liners at lunch; shells stay in the bag if palms soak."),
+            GearPiece(name: "Two ski-sock pairs", bay: .bootBag, why: "One on, one drying. Never reuse a soaked pair on day two."),
+            GearPiece(name: "Merino base top + bottom", bay: .cabin, why: "Sleep in the spare set on storm nights so the riding set dries."),
+            GearPiece(name: "Insulated vest or light mid", bay: .cabin, why: "The piece you add on the first chair, not in the parking lot."),
+            GearPiece(name: "Lift pass / ID sleeve", bay: .cabin, why: "Keep it with the phone, not in a jacket you might leave in the lodge."),
+            GearPiece(name: "SPF lip + face stick", bay: .cabin, why: "Windburn starts before you notice sun on a cold ridge."),
+            GearPiece(name: "Phone brick + short cable", bay: .cabin, why: "Cold kills batteries by first lunch if you shoot video.")
+        ]
+
+        if nights >= 3 {
+            pieces.append(GearPiece(name: "Second midlayer", bay: .hold, why: "A dry fleece for day three after two dump days."))
+        }
+
+        switch snow {
+        case .dump:
+            pieces.append(contentsOf: [
+                GearPiece(name: "Low-light goggle lens", bay: .bootBag, why: "Storm light goes flat; a rose/amber lens keeps trees readable."),
+                GearPiece(name: "Shell pants + taped jacket", bay: .hold, why: "Softshell soaks through by run four in a true dump."),
+                GearPiece(name: "Neck tube, not a scarf", bay: .bootBag, why: "A scarf ices and pulls. A tube stays under the helmet."),
+                GearPiece(name: "Spare gloves", bay: .hold, why: "Dump days soak one pair before noon.")
+            ])
+        case .groomer:
+            pieces.append(contentsOf: [
+                GearPiece(name: "Thin hardpack gloves", bay: .bootBag, why: "Bulky dump mittens overheat on icy groomers."),
+                GearPiece(name: "Edge-tune reminder card", bay: .cabin, why: "Hardpack punishes dull edges more than any other window."),
+                GearPiece(name: "Hip-flask tea flask", bay: .cabin, why: "Warm drink at 11am when the wind strips heat on open pistes.")
+            ])
+        case .corn:
+            pieces.append(contentsOf: [
+                GearPiece(name: "Light shell only", bay: .bootBag, why: "Corn days spike fast; a heavy insulated jacket becomes a burden."),
+                GearPiece(name: "Sunhat for the lift", bay: .cabin, why: "Helmet-off laps still burn. Pack a brim."),
+                GearPiece(name: "Water bottle, not just a bar", bay: .cabin, why: "Spring snow dehydrates harder than storm days.")
+            ])
+        case .mixed:
+            pieces.append(contentsOf: [
+                GearPiece(name: "Zip-off extra layer", bay: .bootBag, why: "Mixed windows swing 8–10°C between first chair and last."),
+                GearPiece(name: "Both goggle lenses", bay: .bootBag, why: "Clouds roll; you will swap at 10:30 more often than you think.")
+            ])
+        }
+
+        switch travel {
+        case .fly:
+            pieces.append(contentsOf: [
+                GearPiece(name: "Boot bag as carry-on", bay: .cabin, why: "Boots in the hold get delayed. You can rent skis, not a fitted boot."),
+                GearPiece(name: "Fold-flat helmet bag", bay: .cabin, why: "Most airlines treat a helmet as a second personal item if padded."),
+                GearPiece(name: "Ski-bag zipper locks", bay: .hold, why: "Stops the bag exploding on the belt, not theft theatre."),
+                GearPiece(name: "Paper backup of lodging", bay: .cabin, why: "Mountain cell service dies in the valley. Screenshot is not enough if the phone is cold-dead.")
+            ])
+        case .drive:
+            pieces.append(contentsOf: [
+                GearPiece(name: "Windshield ice kit", bay: .car, why: "Lot ice is thicker than home ice. Scraper plus de-icer."),
+                GearPiece(name: "Blanket + extra water", bay: .car, why: "Dawn lots close in. This is the wait-out-the-chain kit."),
+                GearPiece(name: "Boot dryer or dry towels", bay: .car, why: "Drive nights: dry boots in the car with doors cracked, not in a wet tub."),
+                GearPiece(name: "Microspikes or lot traction", bay: .car, why: "The walk from car to lodge injures more people than run one.")
+            ])
+        }
+
+        return pieces
     }
 }

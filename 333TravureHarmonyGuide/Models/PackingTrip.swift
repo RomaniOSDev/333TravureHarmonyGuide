@@ -1,24 +1,17 @@
 import Foundation
 
-struct PackingTrip: Identifiable, Codable, Equatable, Hashable {
-    var id: UUID
-    var title: String
-    var destinationId: UUID?
-    var items: [PackingItem]
+struct KitBayGroup: Identifiable {
+    let id: String
+    let bay: GearBay
+    let pieces: [GearPiece]
+}
 
-    init(id: UUID = UUID(), title: String, destinationId: UUID? = nil, items: [PackingItem] = []) {
-        self.id = id
-        self.title = title
-        self.destinationId = destinationId
-        self.items = items
-    }
-
-    var packedCount: Int {
-        items.filter(\.packed).count
-    }
-
-    var completion: Double {
-        guard !items.isEmpty else { return 0 }
-        return Double(packedCount) / Double(items.count)
+enum KitBayLayout {
+    static func groups(from pieces: [GearPiece]) -> [KitBayGroup] {
+        GearBay.allCases.compactMap { bay in
+            let items = pieces.filter { $0.bay == bay }
+            guard !items.isEmpty else { return nil }
+            return KitBayGroup(id: bay.rawValue, bay: bay, pieces: items)
+        }
     }
 }
